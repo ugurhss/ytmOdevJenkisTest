@@ -44,6 +44,7 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+        $user->assignRole('student');//yenn kayıt olanu ögrenci yaptık
 
         return redirect(route('dashboard', absolute: false));
     }
