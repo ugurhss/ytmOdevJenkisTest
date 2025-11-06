@@ -12,7 +12,7 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1️⃣ Permissions
+        //  Permissions
         $permissions = [
             'create Groups',
             'update Groups',
@@ -24,17 +24,17 @@ class RoleSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // 2️⃣ Roles
+        // Roles
         $superAdmin = Role::firstOrCreate(['name' => 'superadmin']);
         $admin      = Role::firstOrCreate(['name' => 'admin']);
         $student    = Role::firstOrCreate(['name' => 'student']);
 
-        // 3️⃣ Assign permissions
+        // Assign permissions
         $superAdmin->syncPermissions(Permission::all());
         $admin->syncPermissions(['create Groups', 'update Groups', 'show Groups']);
         $student->syncPermissions([]); // sadece bildirim alacak
 
-        // 4️⃣ Users
+        //  Users
         $superAdminUser = User::firstOrCreate(
             ['email' => 'superadmin@example.com'],
             [
@@ -59,7 +59,7 @@ class RoleSeeder extends Seeder
             ]
         );
 
-        // 5️⃣ Assign roles
+        //  Assign roles
         $superAdminUser->assignRole($superAdmin);
         $adminUser->assignRole($admin);
         $studentUser->assignRole($student);

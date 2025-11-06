@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Group;
 use App\Http\Controllers\Controller;
 
 use App\Models\Group;
-use App\Services\Group\GroupService;
 use App\Services\City\CityService;
+use App\Services\Group\GroupService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Inertia\Inertia;
 
 
 class GroupController extends Controller
@@ -34,8 +35,9 @@ class GroupController extends Controller
         $this->authorize('create', Group::class);
 
         $cities = $this->cityService->getAll();
-        return view('groups.create', compact('cities'));
-    }
+        return Inertia::render('Groups/Create', [
+            'cities' => $cities,
+        ]);    }
 
     /**
      * Yeni grup oluşturur.
@@ -66,16 +68,20 @@ class GroupController extends Controller
     /**
      * Grup detay sayfasını gösterir.
      */
-    public function grupShow(int $id)
-    {
-        $group = $this->groupService->getById($id);
+   public function grupShow(int $id)
+{
+    $group = $this->groupService->getById($id);
 
-        // Policy kontrolü
-        $this->authorize('view', $group);
+    // Policy kontrolü
+    $this->authorize('view', $group);
 
-        return view('groups.show', compact('group'));
-    }
+    // İlişkileri yükle - SADECE BU SATIRI EKLEYİN
+    $group->load(['city', 'university', 'faculty', 'department', 'classModel','announcements']);
 
+    return Inertia::render('Groups/Show', [
+        'group' => $group,
+    ]);
+}
     /**
      * Grup düzenleme formu
      */
@@ -87,8 +93,10 @@ class GroupController extends Controller
         $this->authorize('update', $group);
 
         $cities = $this->cityService->getAll();
-        return view('groups.edit', compact('group', 'cities'));
-    }
+            return Inertia::render('Groups/Edit', [
+            'group' => $group,
+            'cities' => $cities,
+        ]);    }
 
     /**
      * Grup güncelleme işlemi
@@ -122,7 +130,7 @@ class GroupController extends Controller
         $this->groupService->delete($id);
 
         return redirect()
-            ->route('groups.index')
+            ->route('dashboard')
             ->with('success', 'Grup başarıyla silindi.');
     }
 }

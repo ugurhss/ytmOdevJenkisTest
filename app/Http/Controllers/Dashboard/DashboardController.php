@@ -4,19 +4,19 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
     /**
      * Kullanıcıyı rolüne göre ilgili dashboard'a yönlendirir.
      */
-    public function index()
+    public function index(): Response
     {
-        $user = Auth::user(); // Giriş yapan kullanıcıyı al
+        $user = Auth::user();
 
-        // Spatie rol kontrolü
         if ($user->hasRole('superadmin')) {
             return $this->superAdminDashboard();
         }
@@ -26,74 +26,63 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole('student')) {
-            // Öğrenci dashboard'u için user nesnesini metoda gönderiyoruz
             return $this->studentDashboard($user);
         }
 
-        // Hiçbir role uymuyorsa varsayılan
         return $this->defaultDashboard();
     }
 
     /**
-     * Super Admin için dashboard verilerini hazırlar ve view'ı döndürür.
+     * Super Admin Dashboard
      */
-    protected function superAdminDashboard()
+    protected function superAdminDashboard(): Response
     {
         $stats = [
             'total_users' => User::count(),
             'total_admins' => User::role('admin')->count(),
             'total_students' => User::role('student')->count(),
-            'system_health' => 'Optimal' // Örnek veri
+            'system_health' => 'Optimal'
         ];
 
-        return view('dashboard.superadmin.dashboard', compact('stats'));
+        return Inertia::render('SuperAdmin/Dashboard', [
+            'stats' => $stats
+        ]);
     }
 
     /**
-     * Admin (Grup Yöneticisi) için dashboard verilerini hazırlar ve view'ı döndürür.
+     * Admin Dashboard
      */
-    protected function adminDashboard()
+    protected function adminDashboard(): Response
     {
-        // Not: Bu 'admin' rolü, bizim sistemimizdeki "grubu oluşturan kişi" (group owner)
-        // rolüyle aynıysa, buradaki sorguları ona göre özelleştirebiliriz.
-        // Şimdilik sizin verdiğiniz örnekle ilerliyorum.
-
-        // Admin'in kendi yönettiği gruplardaki öğrenci sayısı vb. daha mantıklı olabilir.
-        // Örn: $adminGroups = Auth::user()->ownedGroups()->withCount('students')->get();
-
         $stats = [
-            'active_students' => User::role('student')->count(), // Tüm sistemdeki öğrenciler
-            'pending_approvals' => 0, // Örnek veri
-            'recent_activity' => 0  // Örnek veri
+            'active_students' => User::role('student')->count(),
+            'pending_approvals' => 0,
+            'recent_activity' => 0
         ];
 
-        return view('dashboard.admin.dashboard', compact('stats'));
+        return Inertia::render('Admin/Dashboard', [
+            'stats' => $stats
+        ]);
     }
 
     /**
-     * Student (Öğrenci) için dashboard verilerini hazırlar ve view'ı döndürür.
-     * BURASI ÖNEMLİ: Önceki index() metodumuzun mantığını buraya taşıdık.
-     *
-     * @param User $user Giriş yapmış olan öğrenci
-     * @return \Illuminate\View\View
+     * Student Dashboard
      */
-    protected function studentDashboard(User $user)
+    protected function studentDashboard(User $user): Response
     {
-        // Öğrencinin üye olduğu grupları, bu grupların duyurularını
-        // ve duyuruyu yazan kullanıcıyı (admini) peşin yüklüyoruz (Eager Loading).
         $user->load('groups.announcements.user');
 
-        // View'ı kullanıcının istediği yola yönlendir: 'dashboard.user.dashboard'
-        // 'user' değişkenini (tüm bildirimleriyle birlikte) view'a gönderiyoruz.
-        return view('dashboard.user.dashboard', compact('user'));
+        return Inertia::render('User/Dashboard', [
+            'user' => $user
+        ]);
     }
 
     /**
-     * Hiçbir role sahip olmayan veya varsayılan kullanıcılar için.
+     * Varsayılan Dashboard
      */
-    protected function defaultDashboard()
+    protected function defaultDashboard(): Response
     {
-        // Orijinal resources/views/dashboard.blade.php
-        return view('dashboard');
+
+        return Inertia::render('Dashboard');
     }
 }

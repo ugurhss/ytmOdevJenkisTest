@@ -7,10 +7,11 @@ use App\Models\Group;
 use App\Models\Student;
 use App\Services\Group\GroupService;
 use App\Services\Student\StudentService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Inertia\Inertia;
 
 class StudentController extends Controller
 {
@@ -29,6 +30,29 @@ class StudentController extends Controller
 
 
     }
+public function studentCreate(int $groupId)
+{
+    $group = $this->groupService->getById($groupId);
+
+    //  Debug noktası
+    // dd([
+    //     'authenticated_user' => Auth::user(),
+    //     'user_roles' => Auth::user()->getRoleNames(),
+    //     'hasRole_superadmin' => Auth::user()->hasRole('superadmin'),
+    //     'group' => $group,
+    //     'group_user_id' => $group->user_id ?? null,
+    // ]);
+
+        $this->authorize('create', Group::class);
+
+    return Inertia::render('Students/Create', [
+        'group' => $group,
+    ]);
+}
+
+
+
+
 
     /**
      *  Belirli bir gruba yeni öğrenci ekler.
@@ -37,8 +61,7 @@ class StudentController extends Controller
     {
         $group = $this->groupService->getById($groupId);
 
-        // Policy kontrolü (StudentPolicy@addToGroup)
-        $this->authorize('addToGroupStudent', $group);
+        $this->authorize('create', Group::class);
 
         $validated = $request->validate([
             'name'     => ['required', 'string', 'max:255'],
@@ -47,8 +70,8 @@ class StudentController extends Controller
         ]);
 
         $this->studentService->createAndAttachToGroup($validated, $groupId);
-
         return back()->with('success', 'Öğrenci başarıyla eklendi!');
+
     }
 
     /**
@@ -58,13 +81,17 @@ class StudentController extends Controller
     {
         $group = $this->groupService->getById($groupId);
 
-        // Policy kontrolü (StudentPolicy@viewGroupStudents)
-        $this->authorize('viewGroupStudents', $group);
+    $this->authorize('view', $group);
 
         $students = $this->groupService->getStudents($groupId);
 
-        return view('students.index', compact('group', 'students'));
-    }
+
+  return Inertia::render('Students/Index', [
+        'group' => $group,
+        'students' => $students,
+    ]);
+
+}
 
     /**
      *  Öğrenciyi gruptan kaldırır.
@@ -73,8 +100,7 @@ class StudentController extends Controller
     {
         $group = $this->groupService->getById($groupId);
 
-        // Policy kontrolü (StudentPolicy@removeFromGroup)
-        $this->authorize('removeFromGroupStudent', $group);
+        $this->authorize('delete', $group);
 
         $group->students()->detach($studentId);
 

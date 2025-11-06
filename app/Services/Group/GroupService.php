@@ -22,6 +22,7 @@ class GroupService
      */
     public function getAll()
     {
+
         return $this->repository->all();
     }
 
