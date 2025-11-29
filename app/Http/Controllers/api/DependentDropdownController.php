@@ -32,36 +32,28 @@ class DependentDropdownController extends Controller
         $this->classService = $classService;
     }
 
-    /**
-     * Şehre göre üniversiteleri getirir.
-     */
+
     public function universities(int $cityId): JsonResponse
     {
         $universities = $this->universityService->getByForeignKey('city_id', $cityId);
         return response()->json($universities);
     }
 
-    /**
-     * Üniversiteye göre fakülteleri getirir.
-     */
+
     public function faculties(int $universityId): JsonResponse
     {
         $faculties = $this->facultyService->getByForeignKey('university_id', $universityId);
         return response()->json($faculties);
     }
 
-    /**
-     * Fakülteye göre bölümleri getirir.
-     */
+
     public function departments(int $facultyId): JsonResponse
     {
         $departments = $this->departmentService->getByForeignKey('faculty_id', $facultyId);
         return response()->json($departments);
     }
 
-    /**
-     * Bölüme göre sınıfları getirir.
-     */
+
     public function classes(int $departmentId): JsonResponse
     {
         $classes = $this->classService->getByForeignKey('department_id', $departmentId);

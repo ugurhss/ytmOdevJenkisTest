@@ -48,25 +48,19 @@ class User extends Authenticatable
     }
 
 
-    /**
-     * Bir kullanıcının (öğrencinin) sahip olduğu (oluşturduğu) gruplar (One-to-Many)
-     */
+
     public function ownedGroups()
     {
         return $this->hasMany(Group::class, 'user_id');
     }
 
-    /**
-     * Bir kullanıcının (öğrencinin) üye olduğu gruplar (Many-to-Many)
-     */
+
     public function groups()
     {
         return $this->belongsToMany(Group::class, 'group_user');
     }
 
-    /**
-     * Bir kullanıcının (öğrencinin) oluşturduğu grup duyuruları (One-to-Many)
-     */
+
     public function groupAnnouncements()
     {
         return $this->hasMany(GroupAnnouncement::class, 'user_id');

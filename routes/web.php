@@ -55,7 +55,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth'])->prefix('groups/{group}/students')->name('students.')->group(function () {
     Route::get('/', [StudentController::class, 'studentIndex'])->name('index');
-    Route::get('/create', [StudentController::class, 'studentCreate'])->name('create'); // Yeni eklendi
+    Route::get('/create', [StudentController::class, 'studentCreate'])->name('create');
     Route::post('/', [StudentController::class, 'studentStore'])->name('store');
     Route::delete('/{student}', [StudentController::class, 'studentDestroy'])->name('destroy');
 });
@@ -63,11 +63,9 @@ Route::middleware(['auth'])->prefix('groups/{group}/students')->name('students.'
 
 
 
-// Kimlik doğrulama gerektiren rotalar
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // Duyuru Rotaları
-    // Sadece admin ve superadmin erişebilir (Policy içinde kontrol ediliyor)
+
     Route::resource('announcements', AnnouncementController::class);
 
 });

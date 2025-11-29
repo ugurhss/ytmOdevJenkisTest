@@ -9,9 +9,7 @@ class GroupAnnouncement extends Model
 {
     use HasFactory;
 
-    /**
-     * Tablo adı 'group_announcements'
-     */
+
     protected $table = 'group_announcements';
 
     protected $fillable = [
@@ -21,17 +19,13 @@ class GroupAnnouncement extends Model
         'content',
     ];
 
-    /**
-     * Bu duyuru bir gruba aittir (belongsTo)
-     */
+
     public function group()
     {
         return $this->belongsTo(Group::class);
     }
 
-    /**
-     * Bu duyuru bir kullanıcı tarafından oluşturulmuştur (belongsTo)
-     */
+
     public function user()
     {
         return $this->belongsTo(User::class);

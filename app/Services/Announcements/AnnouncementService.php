@@ -20,12 +20,10 @@ class AnnouncementService
         $this->groupService = $groupService;
     }
 
-    /**
-     * 📄 Index sayfası verilerini hazırlar
-     */
+
     public function getIndexData($user, Request $request)
     {
-        // 👥 Kullanıcının rolüne göre grupları getir
+
         if ($user->hasRole('superadmin')) {
             $groups = $this->groupService->getAll();
             $groupIds = null;
@@ -34,7 +32,6 @@ class AnnouncementService
             $groupIds = $groups->pluck('id')->toArray();
         }
 
-        // 🔍 Filtreler
         $filters = [
             'search'   => $request->input('search'),
             'group_id' => $request->input('group_id'),
@@ -44,7 +41,7 @@ class AnnouncementService
             $filters['group_ids'] = $groupIds;
         }
 
-        // 📜 Duyuruları getir
+
         $announcements = $this->announcementRepo->getPaginated($filters, 15);
 
         return [
@@ -54,14 +51,12 @@ class AnnouncementService
         ];
     }
 
-    /**
-     * 🆕 Yeni duyuru oluştur
-     */
+
     public function createWithRelations(array $data, $user)
     {
         $group = Group::findOrFail($data['group_id']);
 
-        // ✅ Policy kontrolü
+
         $user->can('view', $group) ?: abort(403, 'Bu gruba erişim yetkiniz yok.');
 
         $data['user_id'] = $user->id;
@@ -69,26 +64,20 @@ class AnnouncementService
         return $this->announcementRepo->create($data);
     }
 
-    /**
-     * 🔍 Duyuru ID’ye göre getir
-     */
+
     public function findById(int $id)
     {
         $announcement = $this->announcementRepo->findById($id);
         return $announcement ?? abort(404, 'Duyuru bulunamadı.');
     }
 
-    /**
-     * ✏️ Duyuru güncelle
-     */
+
     public function updateWithRelations(int $id, array $data)
     {
         return $this->announcementRepo->update($id, $data);
     }
 
-    /**
-     * 🗑️ Duyuru sil
-     */
+
     public function delete(int $id)
     {
         return $this->announcementRepo->delete($id);

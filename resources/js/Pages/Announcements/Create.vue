@@ -35,7 +35,7 @@
                             >
                                 <option value="">Grup Seçiniz</option>
                                 <option v-for="group in groups" :key="group.id" :value="group.id">
-                                    {{ group.name }}
+                                    {{ group.groups_name }}
                                 </option>
                             </select>
                             <div v-if="form.errors.group_id" class="mt-1 text-sm text-red-600">

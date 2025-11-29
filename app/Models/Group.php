@@ -9,22 +9,18 @@ class Group extends Model
 {
     use HasFactory;
 
-    /**
-     * Migration'daki sütun adlarıyla eşleşen fillable
-     */
+
     protected $fillable = [
         'user_id',
         'city_id',
         'university_id',
         'faculty_id',
         'department_id',
-        'class_models_id', // Düzeltildi
-        'groups_name'      // Düzeltildi
+        'class_models_id',
+        'groups_name'
     ];
 
-    /**
-     * Grubu oluşturan kullanıcı (user_id)
-     */
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -50,28 +46,19 @@ class Group extends Model
         return $this->belongsTo(Department::class);
     }
 
-    /**
-     * 'class' rezerve kelime olduğu için 'classModel' olarak adlandırıldı.
-     * Foreign key 'class_models_id' olarak düzeltildi.
-     */
+
     public function classModel()
     {
         return $this->belongsTo(ClassModel::class, 'class_models_id');
     }
 
-    // --- YENİ İLİŞKİLER ---
 
-    /**
-     * Bir grubun birden fazla öğrencisi (User) olabilir (Many-to-Many)
-     */
     public function students()
     {
         return $this->belongsToMany(User::class, 'group_user');
     }
 
-    /**
-     * Bir grubun birden fazla duyurusu olabilir (One-to-Many)
-     */
+
     public function announcements()
     {
         return $this->hasMany(GroupAnnouncement::class);

@@ -4,7 +4,10 @@ namespace App\Repositories;
 use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseRepository
-{
+{/* The `<?php` tag is used to indicate the start of a PHP code block in a PHP file. It is necessary to
+include this tag at the beginning of a PHP file to inform the server that the content within the
+file should be interpreted as PHP code. */
+
     protected Model $model;
 
     public function __construct(Model $model)

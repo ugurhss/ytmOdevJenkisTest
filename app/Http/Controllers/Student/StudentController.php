@@ -20,9 +20,7 @@ class StudentController extends Controller
     protected StudentService $studentService;
     protected GroupService $groupService;
 
-    /**
-     * Constructor
-     */
+
     public function __construct(StudentService $studentService, GroupService $groupService)
     {
         $this->studentService = $studentService;
@@ -34,7 +32,7 @@ public function studentCreate(int $groupId)
 {
     $group = $this->groupService->getById($groupId);
 
-    //  Debug noktası
+
     // dd([
     //     'authenticated_user' => Auth::user(),
     //     'user_roles' => Auth::user()->getRoleNames(),
@@ -54,9 +52,7 @@ public function studentCreate(int $groupId)
 
 
 
-    /**
-     *  Belirli bir gruba yeni öğrenci ekler.
-     */
+
     public function studentStore(Request $request, int $groupId)
     {
         $group = $this->groupService->getById($groupId);
@@ -74,9 +70,7 @@ public function studentCreate(int $groupId)
 
     }
 
-    /**
-     *  Gruba bağlı öğrencileri listeler.
-     */
+
     public function studentIndex(int $groupId)
     {
         $group = $this->groupService->getById($groupId);
@@ -93,9 +87,7 @@ public function studentCreate(int $groupId)
 
 }
 
-    /**
-     *  Öğrenciyi gruptan kaldırır.
-     */
+
     public function studentDestroy(int $groupId, int $studentId)
     {
         $group = $this->groupService->getById($groupId);

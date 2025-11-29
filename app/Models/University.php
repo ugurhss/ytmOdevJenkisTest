@@ -11,17 +11,13 @@ class University extends Model
 
     protected $fillable = ['city_id', 'name'];
 
-    /**
-     * Üniversite bir şehre aittir
-     */
+
     public function city()
     {
         return $this->belongsTo(City::class);
     }
 
-    /**
-     * Üniversitenin birden fazla fakültesi olabilir
-     */
+
     public function faculties()
     {
         return $this->hasMany(Faculty::class);

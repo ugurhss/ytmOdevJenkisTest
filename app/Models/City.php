@@ -11,9 +11,7 @@ class City extends Model
 
     protected $fillable = ['name'];
 
-    /**
-     * Bir şehirde birden fazla üniversite olabilir
-     */
+
     public function universities()
     {
         return $this->hasMany(University::class);

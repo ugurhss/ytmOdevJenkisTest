@@ -21,10 +21,7 @@ class AnnouncementController extends Controller
         $this->announcementService = $announcementService;
     }
 
-    /**
-     * 📜 Duyuru listesi
-     * Superadmin tüm duyuruları, Admin sadece kendi gruplarındaki duyuruları görür.
-     */
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', GroupAnnouncement::class);
@@ -43,16 +40,14 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    /**
-     * 🆕 Yeni duyuru oluşturma formu
-     */
+
     public function create()
     {
         $this->authorize('create', GroupAnnouncement::class);
 
         $user = auth()->user();
 
-        // Servisten grupları al
+
         if ($user->hasRole('superadmin')) {
             $groups = $this->announcementService->getIndexData($user, request())['groups'];
         } else {
@@ -64,9 +59,7 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    /**
-     * 💾 Duyuru kaydetme
-     */
+
     public function store(Request $request)
     {
         $this->authorize('create', GroupAnnouncement::class);
@@ -92,9 +85,7 @@ class AnnouncementController extends Controller
             ->with('success', 'Duyuru başarıyla oluşturuldu.');
     }
 
-    /**
-     * 👁️ Duyuru detayı gösterme
-     */
+
     public function show($id)
     {
         $announcement = $this->announcementService->findById($id);
@@ -110,9 +101,7 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    /**
-     * ✏️ Duyuru düzenleme formu
-     */
+
     public function edit($id)
     {
         $announcement = $this->announcementService->findById($id);
@@ -128,9 +117,7 @@ class AnnouncementController extends Controller
         ]);
     }
 
-    /**
-     * 🔁 Duyuru güncelleme
-     */
+
     public function update(Request $request, $id)
     {
         $announcement = $this->announcementService->findById($id);
@@ -155,9 +142,7 @@ class AnnouncementController extends Controller
             ->with('success', 'Duyuru başarıyla güncellendi.');
     }
 
-    /**
-     * 🗑️ Duyuru silme
-     */
+
     public function destroy($id)
     {
         $announcement = $this->announcementService->findById($id);

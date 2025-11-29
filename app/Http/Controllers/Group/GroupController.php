@@ -26,12 +26,9 @@ class GroupController extends Controller
 
     }
 
-    /**
-     * Grup oluşturma formu
-     */
+
     public function grupCreate()
     {
-        // Policy kontrolü
         $this->authorize('create', Group::class);
 
         $cities = $this->cityService->getAll();
@@ -39,12 +36,10 @@ class GroupController extends Controller
             'cities' => $cities,
         ]);    }
 
-    /**
-     * Yeni grup oluşturur.
-     */
+
     public function grupStore(Request $request)
     {
-        // Policy kontrolü
+
         $this->authorize('create', Group::class);
 
         $validated = $request->validate([
@@ -65,31 +60,29 @@ class GroupController extends Controller
             ->with('success', 'Grup başarıyla oluşturuldu!');
     }
 
-    /**
-     * Grup detay sayfasını gösterir.
-     */
+
    public function grupShow(int $id)
 {
     $group = $this->groupService->getById($id);
 
-    // Policy kontrolü
+
     $this->authorize('view', $group);
 
-    // İlişkileri yükle - SADECE BU SATIRI EKLEYİN
+ $students = $this->groupService->getStudents($id);
+
     $group->load(['city', 'university', 'faculty', 'department', 'classModel','announcements']);
 
     return Inertia::render('Groups/Show', [
         'group' => $group,
+        'students' => $students,
     ]);
 }
-    /**
-     * Grup düzenleme formu
-     */
+
     public function grupEdit(int $id)
     {
         $group = $this->groupService->getById($id);
 
-        // Policy kontrolü
+
         $this->authorize('update', $group);
 
         $cities = $this->cityService->getAll();
@@ -98,14 +91,12 @@ class GroupController extends Controller
             'cities' => $cities,
         ]);    }
 
-    /**
-     * Grup güncelleme işlemi
-     */
+
     public function grupUpdate(Request $request, int $id)
     {
         $group = $this->groupService->getById($id);
 
-        // Policy kontrolü
+
         $this->authorize('update', $group);
 
         $validated = $request->validate([
@@ -117,14 +108,10 @@ class GroupController extends Controller
         return back()->with('success', 'Grup bilgileri güncellendi.');
     }
 
-    /**
-     * Grup silme işlemi
-     */
-    public function grupDestroy(int $id)
+     public function grupDestroy(int $id)
     {
         $group = $this->groupService->getById($id);
 
-        // Policy kontrolü
         $this->authorize('delete', $group);
 
         $this->groupService->delete($id);

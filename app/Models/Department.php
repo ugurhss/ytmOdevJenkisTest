@@ -11,17 +11,12 @@ class Department extends Model
 
     protected $fillable = ['faculty_id', 'name'];
 
-    /**
-     * Bölüm bir fakülteye aittir
-     */
+
     public function faculty()
     {
         return $this->belongsTo(Faculty::class);
     }
 
-    /**
-     * Bölümün birden fazla sınıfı olabilir
-     */
     public function classes()
     {
         return $this->hasMany(ClassModel::class);
