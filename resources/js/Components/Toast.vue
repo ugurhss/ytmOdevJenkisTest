@@ -7,7 +7,7 @@ const message = ref('')
 const visible = ref(false)
 
 watch(
-  () => page.props?.flash?.success, // <-- güvenli erişim
+  () => page.props?.flash?.success,
   (newMessage) => {
     if (newMessage) {
       message.value = newMessage

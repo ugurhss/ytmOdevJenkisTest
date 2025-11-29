@@ -24,10 +24,11 @@ class StudentRepository
     /**
      * Yeni bir öğrenci (User) oluşturur.
      */
-    public function create(array $data)
+  public function create(array $data)
     {
         return $this->user->create([
             'name'     => $data['name'],
+            'no'       => $data['no'], // Yeni eklenen alan
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);

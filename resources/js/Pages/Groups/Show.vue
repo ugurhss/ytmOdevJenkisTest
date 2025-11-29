@@ -2,6 +2,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
+import ToastNotification from '@/Components/ToastNotification.vue';
+
 
 const props = defineProps({
     group: Object,
@@ -66,6 +68,7 @@ const studentCount = computed(() => props.students?.length || 0)
                 </div>
                 Grup Bilgileri
             </h3>
+            <ToastNotification />
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <div class="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 hover:shadow-md transition">

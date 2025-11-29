@@ -69,4 +69,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('announcements', AnnouncementController::class);
 
 });
+
+
+
+ Route::get('/students/sample/csv', [StudentController::class, 'downloadSampleCsv'])
+        ->name('students.sample.csv');
+
+    Route::get('/students/sample/excel', [StudentController::class, 'downloadSampleExcel'])
+        ->name('students.sample.excel');
+
 require __DIR__.'/auth.php';
