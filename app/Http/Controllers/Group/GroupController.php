@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Group;
 use App\Http\Controllers\Controller;
 
+use App\Http\Requests\StoreGroupRequest;
+use App\Http\Requests\UpdateGroupRequest;
 use App\Models\Group;
 use App\Services\City\CityService;
 use App\Services\Group\GroupService;
@@ -37,28 +39,20 @@ class GroupController extends Controller
         ]);    }
 
 
-    public function grupStore(Request $request)
-    {
+public function grupStore(StoreGroupRequest $request)
+{
+    $this->authorize('create', Group::class);
 
-        $this->authorize('create', Group::class);
+    $validated = $request->validated();
 
-        $validated = $request->validate([
-            'groups_name'     => 'required|string|max:255',
-            'city_id'         => 'required|exists:cities,id',
-            'university_id'   => 'required|exists:universities,id',
-            'faculty_id'      => 'required|exists:faculties,id',
-            'department_id'   => 'required|exists:departments,id',
-            'class_models_id' => 'required|exists:class_models,id',
-        ]);
+    $validated['user_id'] = Auth::id();
 
-        $validated['user_id'] = Auth::id();
+    $group = $this->groupService->create($validated);
 
-        $group = $this->groupService->create($validated);
-
-        return redirect()
-            ->route('groups.show', $group)
-            ->with('success', 'Grup başarıyla oluşturuldu!');
-    }
+    return redirect()
+        ->route('groups.show', $group)
+        ->with('success', 'Grup başarıyla oluşturuldu!');
+}
 
 
    public function grupShow(int $id)
@@ -92,21 +86,18 @@ class GroupController extends Controller
         ]);    }
 
 
-    public function grupUpdate(Request $request, int $id)
-    {
-        $group = $this->groupService->getById($id);
+public function grupUpdate(UpdateGroupRequest $request, int $id)
+{
+    $group = $this->groupService->getById($id);
 
+    $this->authorize('update', $group);
 
-        $this->authorize('update', $group);
+    $validated = $request->validated();
 
-        $validated = $request->validate([
-            'groups_name' => 'required|string|max:255',
-        ]);
+    $this->groupService->update($id, $validated);
 
-        $this->groupService->update($id, $validated);
-
-        return back()->with('success', 'Grup bilgileri güncellendi.');
-    }
+    return back()->with('success', 'Grup bilgileri güncellendi.');
+}
 
      public function grupDestroy(int $id)
     {

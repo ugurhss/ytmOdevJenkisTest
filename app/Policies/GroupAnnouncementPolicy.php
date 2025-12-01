@@ -7,7 +7,6 @@ use App\Models\User;
 
 class GroupAnnouncementPolicy
 {
-    // Singleton Pattern
 
     public function create(User $user): bool
     {

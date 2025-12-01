@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Announcements;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAnnouncementRequest;
+use App\Http\Requests\UpdateAnnouncementRequest;
 use App\Models\Group;
 use App\Models\GroupAnnouncement;
 use App\Services\Announcements\AnnouncementService;
@@ -60,30 +62,20 @@ class AnnouncementController extends Controller
     }
 
 
-    public function store(Request $request)
-    {
-        $this->authorize('create', GroupAnnouncement::class);
+  public function store(StoreAnnouncementRequest $request)
+{
+    $this->authorize('create', GroupAnnouncement::class);
 
-        $user = auth()->user();
+    $user = auth()->user();
 
-        $validated = $request->validate([
-            'group_id' => 'required|exists:groups,id',
-            'title'    => 'required|string|max:255',
-            'content'  => 'required|string',
-        ], [
-            'group_id.required' => 'Grup seçimi zorunludur.',
-            'group_id.exists'   => 'Seçilen grup bulunamadı.',
-            'title.required'    => 'Başlık zorunludur.',
-            'title.max'         => 'Başlık en fazla 255 karakter olabilir.',
-            'content.required'  => 'İçerik zorunludur.',
-        ]);
+    $validated = $request->validated();
 
-        $this->announcementService->createWithRelations($validated, $user);
+    $this->announcementService->createWithRelations($validated, $user);
 
-        return redirect()
-            ->route('announcements.index')
-            ->with('success', 'Duyuru başarıyla oluşturuldu.');
-    }
+    return redirect()
+        ->route('announcements.index')
+        ->with('success', 'Duyuru başarıyla oluşturuldu.');
+}
 
 
     public function show($id)
@@ -117,30 +109,19 @@ class AnnouncementController extends Controller
         ]);
     }
 
+public function update(UpdateAnnouncementRequest $request, $id)
+{
+    $announcement = $this->announcementService->findById($id);
+    $this->authorize('update', $announcement);
 
-    public function update(Request $request, $id)
-    {
-        $announcement = $this->announcementService->findById($id);
-        $this->authorize('update', $announcement);
+    $validated = $request->validated();
 
-        $validated = $request->validate([
-            'group_id' => 'required|exists:groups,id',
-            'title'    => 'required|string|max:255',
-            'content'  => 'required|string',
-        ], [
-            'group_id.required' => 'Grup seçimi zorunludur.',
-            'group_id.exists'   => 'Seçilen grup bulunamadı.',
-            'title.required'    => 'Başlık zorunludur.',
-            'title.max'         => 'Başlık en fazla 255 karakter olabilir.',
-            'content.required'  => 'İçerik zorunludur.',
-        ]);
+    $this->announcementService->updateWithRelations($id, $validated);
 
-        $this->announcementService->updateWithRelations($id, $validated);
-
-        return redirect()
-            ->route('announcements.index')
-            ->with('success', 'Duyuru başarıyla güncellendi.');
-    }
+    return redirect()
+        ->route('announcements.index')
+        ->with('success', 'Duyuru başarıyla güncellendi.');
+}
 
 
     public function destroy($id)
