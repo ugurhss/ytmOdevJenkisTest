@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
 
 
 Route::middleware(['auth'])->prefix('groups')->name('groups.')->group(function () {
+    Route::get('/', [GroupController::class, 'grupIndex'])->name('index');
     Route::get('/create', [GroupController::class, 'grupCreate'])->name('create');
     Route::post('/', [GroupController::class, 'grupStore'])->name('store');
     Route::get('/{id}', [GroupController::class, 'grupShow'])->name('show');

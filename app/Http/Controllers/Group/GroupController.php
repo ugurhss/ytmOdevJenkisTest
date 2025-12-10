@@ -29,6 +29,17 @@ class GroupController extends Controller
     }
 
 
+
+    public function grupIndex(){
+    $this->authorize('viewAny', Group::class);
+
+ $groups = $this->groupService->getAll();
+return Inertia::render('Groups/Index', [
+    'groups' => $groups,
+]);
+
+
+    }
     public function grupCreate()
     {
         $this->authorize('create', Group::class);
@@ -36,7 +47,9 @@ class GroupController extends Controller
         $cities = $this->cityService->getAll();
         return Inertia::render('Groups/Create', [
             'cities' => $cities,
-        ]);    }
+        ]);
+
+    }
 
 
 public function grupStore(StoreGroupRequest $request)

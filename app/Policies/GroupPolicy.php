@@ -18,23 +18,20 @@ class GroupPolicy
 
     public function view(User $user, Group $group): Response
     {
-        // superadmin her şeyi görebilir
+
         if ($user->hasRole('superadmin')) {
             return Response::allow();
         }
 
-        // admin ise sadece kendi grubunu görebilir
         if ($user->hasRole('admin') && $group->user_id === $user->id) {
             return Response::allow();
         }
 
-        // öğrenci ise, gruba üye ise görebilir
         $isMember = $group->students()->where('user_id', $user->id)->exists();
         if ($group->user_id === $user->id || $isMember) {
             return Response::allow();
         }
 
-        // BURAYA DÜŞERSE YETKİ YOK → LOG + DENY
         app(ActivityLogService::class)
             ->logUnauthorizedGroupAccess($user, $group, 'view');
 
@@ -72,4 +69,10 @@ class GroupPolicy
 
         return Response::deny('Bu grubu silme yetkiniz yok.');
     }
+
+
+    public function viewAny(User $user): bool
+{
+    return $user->hasAnyRole([ 'superadmin']);
+}
 }
