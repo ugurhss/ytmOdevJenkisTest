@@ -4,20 +4,24 @@ namespace App\Services\Group;
 
 use App\Models\Group;
 use App\Repositories\Group\GroupRepository;
+use App\Services\Activity\ActivityLogService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 
 class GroupService
 {
+    use AuthorizesRequests;
+
     protected GroupRepository $repository;
+    protected ActivityLogService $activityLogService;
 
-
-        use AuthorizesRequests;
-
-    public function __construct(GroupRepository $repository)
-    {
+    public function __construct(
+        GroupRepository $repository,
+        ActivityLogService $activityLogService
+    ) {
         $this->repository = $repository;
+        $this->activityLogService = $activityLogService;
     }
-
 
     public function getAll()
     {
@@ -34,8 +38,14 @@ class GroupService
 
     public function create(array $data)
     {
+     $group = $this->repository->create($data);
 
-        return $this->repository->create($data);
+
+        $actor = auth()->user();
+
+        $this->activityLogService->logGroupCreated($group, $actor);
+
+        return $group;
     }
 
 

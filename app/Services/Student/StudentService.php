@@ -2,31 +2,39 @@
 
 namespace App\Services\Student;
 
+use App\Models\User;
 use App\Repositories\Student\StudentRepository;
+use App\Services\Activity\ActivityLogService;
+use Illuminate\Support\Facades\Auth;
 
 class StudentService
 {
-    protected StudentRepository $repository;
+       protected StudentRepository $repository;
+    protected ActivityLogService $activityLogService;
 
-    /**
-     * Constructor
-     * StudentRepository servise enjekte edilir.
-     */
-    public function __construct(StudentRepository $repository)
-    {
+
+    public function __construct(
+        StudentRepository $repository,
+        ActivityLogService $activityLogService
+    ) {
         $this->repository = $repository;
+        $this->activityLogService = $activityLogService;
     }
 
-    /**
-     * Yeni öğrenci oluşturur, role atar ve gruba bağlar.
-     */
-    public function createAndAttachToGroup(array $studentData, int $groupId)
+
+
+  public function createAndAttachToGroup(array $studentData, int $groupId): User
     {
-        // Repository ile öğrenci oluşturulur + gruba bağlanır
+
         $student = $this->repository->createAndAttach($studentData, $groupId);
 
-        // Role atanır
-        $student->assignRole('Student');
+        if (! $student->hasRole('student')) {
+            $student->assignRole('student');
+        }
+
+
+        $actor = Auth::user();
+        $this->activityLogService->logStudentAddedToGroup($groupId, $student, $actor);
 
         return $student;
     }

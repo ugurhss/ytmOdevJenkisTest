@@ -40,28 +40,23 @@ class StudentController extends Controller
     {
         $importType = $request->input('import_type');
 
-        // MANUEL KAYIT
         if ($importType === 'manual') {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'no'   => 'required|string|max:950',
             ]);
         }
-        // CSV veya EXCEL
         else {
             $validated = $request->validate([
                 'file' => 'required|file|mimes:csv,xlsx,xls',
             ]);
         }
 
-        // Importer seç
         $importer = StudentImporterFactory::make($importType);
 
         try {
-            // Import işlemi
             $students = $importer->import($validated, $groupId);
 
-            // Role ataması
             foreach ($students as $student) {
                 if(!$student->hasRole('student')){
                     $student->assignRole('student');
@@ -89,7 +84,7 @@ class StudentController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        // Sadece bu iki alan yeterli
+
         $columns = ['name', 'no'];
 
         $callback = function() use ($columns) {
@@ -97,7 +92,7 @@ class StudentController extends Controller
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
             fputcsv($file, $columns);
 
-            // Örnek veriler
+
             fputcsv($file, ['Ahmet Yılmaz', '101']);
             fputcsv($file, ['Ayşe Demir', '102']);
             fputcsv($file, ['Mehmet Kaya', '103']);
@@ -108,7 +103,6 @@ class StudentController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    // Örnek Excel dosyası indir
     public function downloadSampleExcel()
     {
         return Excel::download(new StudentsSampleExport(), 'ornek_ogrenci_listesi.xlsx');

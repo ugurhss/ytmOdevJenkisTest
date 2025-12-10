@@ -2,24 +2,27 @@
 
 namespace App\Services\Announcements;
 
-use App\Repositories\Announcements\AnnouncementsRepository;
-use App\Services\Group\GroupService;
 use App\Models\Group;
+use App\Repositories\Announcements\AnnouncementsRepository;
+use App\Services\Activity\ActivityLogService;
+use App\Services\Group\GroupService;
 use Illuminate\Http\Request;
 
 class AnnouncementService
 {
-    protected AnnouncementsRepository $announcementRepo;
+     protected AnnouncementsRepository $announcementRepo;
     protected GroupService $groupService;
+    protected ActivityLogService $activityLogService;
 
     public function __construct(
         AnnouncementsRepository $announcementRepo,
-        GroupService $groupService
+        GroupService $groupService,
+        ActivityLogService $activityLogService
     ) {
-        $this->announcementRepo = $announcementRepo;
-        $this->groupService = $groupService;
+        $this->announcementRepo   = $announcementRepo;
+        $this->groupService       = $groupService;
+        $this->activityLogService = $activityLogService;
     }
-
 
     public function getIndexData($user, Request $request)
     {
@@ -52,16 +55,20 @@ class AnnouncementService
     }
 
 
-    public function createWithRelations(array $data, $user)
+ public function createWithRelations(array $data, $user)
     {
         $group = Group::findOrFail($data['group_id']);
-
 
         $user->can('view', $group) ?: abort(403, 'Bu gruba erişim yetkiniz yok.');
 
         $data['user_id'] = $user->id;
 
-        return $this->announcementRepo->create($data);
+        $announcement = $this->announcementRepo->create($data);
+
+        // Log
+        $this->activityLogService->logAnnouncementCreated($announcement, $user);
+
+        return $announcement;
     }
 
 

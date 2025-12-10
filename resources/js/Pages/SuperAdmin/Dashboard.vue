@@ -14,12 +14,16 @@ import {
   X,
   ChevronDown,
   TrendingUp,
-  Activity
+  Activity,
+  ShieldAlert,
+  Clock,
+  BellRing
 } from 'lucide-vue-next';
 
 const props = defineProps({
   stats: Object,
   groups: Array,
+  logs: Array, // ✅ ActivityLog modelleri buradan geliyor
 });
 
 const isOpen = ref(false);
@@ -140,9 +144,78 @@ const getColorClasses = (color) => {
       hover: 'hover:bg-rose-100',
       linkHover: 'hover:text-rose-700'
     },
+    gray: {
+      bg: 'bg-gray-50',
+      text: 'text-gray-600',
+      border: 'border-gray-200',
+      iconBg: 'bg-gray-100',
+      hover: 'hover:bg-gray-100',
+      linkHover: 'hover:text-gray-700'
+    },
+    red: {
+      bg: 'bg-red-50',
+      text: 'text-red-600',
+      border: 'border-red-200',
+      iconBg: 'bg-red-100',
+      hover: 'hover:bg-red-100',
+      linkHover: 'hover:text-red-700'
+    },
   };
   return colors[color] || colors.blue;
 };
+
+// 🔔 Log event tipine göre ikon ve renk
+const eventConfig = {
+  group_created: {
+    label: 'Grup Oluşturma',
+    icon: UsersIcon,
+    color: 'blue',
+  },
+  student_added_to_group: {
+    label: 'Öğrenci Ekleme',
+    icon: GraduationCap,
+    color: 'emerald',
+  },
+  announcement_created: {
+    label: 'Duyuru Oluşturma',
+    icon: Megaphone,
+    color: 'orange',
+  },
+  unauthorized_group_access: {
+    label: 'Yetkisiz Grup Erişimi',
+    icon: ShieldAlert,
+    color: 'red',
+  },
+  unauthorized_announcement_access: {
+    label: 'Yetkisiz Duyuru Erişimi',
+    icon: ShieldAlert,
+    color: 'red',
+  },
+};
+
+// Logları formatlı hale getir (props.logs doğrudan modelden geliyor)
+const formattedLogs = computed(() => {
+  if (!props.logs) return [];
+
+  return props.logs.map(log => {
+    const config = eventConfig[log.event] || {
+      label: 'Diğer',
+      icon: Activity,
+      color: 'gray',
+    };
+
+    return {
+      id: log.id,
+      event: log.event,
+      label: config.label,
+      icon: config.icon,
+      color: config.color,
+      description: log.description,
+      actor_name: log.actor_name,
+      created_at: log.created_at, // backend'de formatlanmış string gönderebilirsin
+    };
+  });
+});
 </script>
 
 <template>
@@ -163,6 +236,7 @@ const getColorClasses = (color) => {
     <div class="py-8">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
 
+        <!-- İSTATİSTİK KARTLARI -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             v-for="stat in formattedStats"
@@ -214,6 +288,7 @@ const getColorClasses = (color) => {
           </div>
         </div>
 
+        <!-- SİSTEM DURUMU -->
         <div class="bg-gradient-to-br from-teal-50 via-white to-emerald-50 rounded-2xl p-8 border border-teal-100 shadow-sm">
           <div class="flex items-start gap-4">
             <div class="p-3 bg-teal-100 text-teal-600 rounded-xl">
@@ -234,6 +309,7 @@ const getColorClasses = (color) => {
           </div>
         </div>
 
+        <!-- HIZLI İŞLEMLER -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             <span class="w-1 h-6 bg-blue-600 rounded-full"></span>
@@ -272,6 +348,7 @@ const getColorClasses = (color) => {
           </div>
         </div>
 
+        <!-- TÜM GRUPLAR -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div
             class="p-6 cursor-pointer hover:bg-gray-50 transition-colors select-none"
@@ -370,6 +447,79 @@ const getColorClasses = (color) => {
           </transition>
         </div>
 
+        <!-- ✅ SON AKTİVİTE KAYITLARI -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <span class="w-1 h-6 bg-emerald-600 rounded-full"></span>
+              Son Aktivite Kayıtları
+            </h3>
+            <span class="inline-flex items-center text-xs font-medium text-gray-500">
+              <Clock class="h-4 w-4 mr-1" />
+              Son {{ formattedLogs.length }} kayıt
+            </span>
+          </div>
+
+          <div v-if="formattedLogs.length === 0" class="text-center py-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-3">
+              <Activity class="h-8 w-8 text-gray-400" />
+            </div>
+            <p class="text-gray-500 font-medium">
+              Şu anda görüntülenecek aktivite kaydı bulunmamaktadır.
+            </p>
+          </div>
+
+          <div v-else class="space-y-3 max-h-96 overflow-y-auto pr-1 custom-scroll">
+            <div
+              v-for="log in formattedLogs"
+              :key="log.id"
+              :class="[
+                'flex items-start gap-3 rounded-xl border px-4 py-3 text-sm',
+                getColorClasses(log.color).bg,
+                getColorClasses(log.color).border
+              ]"
+            >
+              <!-- İkon -->
+              <div
+                :class="[
+                  'mt-0.5 p-2 rounded-lg shadow-sm',
+                  getColorClasses(log.color).iconBg,
+                  getColorClasses(log.color).text
+                ]"
+              >
+                <component :is="log.icon" class="h-4 w-4" />
+              </div>
+
+              <!-- Metinler -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {{ log.label }}
+                  </p>
+                  <span class="flex items-center text-[11px] text-gray-500 whitespace-nowrap">
+                    <Clock class="h-3 w-3 mr-1" />
+                    {{ log.created_at }}
+                  </span>
+                </div>
+
+                <p class="text-gray-800 leading-snug">
+                  {{ log.description }}
+                </p>
+
+                <div class="mt-1 flex items-center justify-between text-[11px] text-gray-500">
+                  <div class="flex items-center gap-1" v-if="log.actor_name">
+                    <BellRing class="h-3 w-3" />
+                    <span>İşlemi yapan: <span class="font-medium text-gray-700">{{ log.actor_name }}</span></span>
+                  </div>
+                  <span class="ml-auto text-[11px] px-2 py-0.5 rounded-full bg-white/60 border border-gray-200">
+                    Event: {{ log.event }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </AuthenticatedLayout>
@@ -388,84 +538,16 @@ const getColorClasses = (color) => {
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Log listesi için sade scroll bar */
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
 }
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+.custom-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgba(148, 163, 184, 0.7);
 }
-a:hover {
-  color: #535bf2;
+.custom-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
 }
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
 </style>
