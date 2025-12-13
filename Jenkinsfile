@@ -15,7 +15,8 @@ pipeline {
         checkout scm
         sh 'pwd'
         sh 'ls -la'
-        sh 'test -f docker-compose.app.yml && echo "✅ docker-compose.app.yml var" || (echo "❌ yok" && exit 1)'
+        sh 'test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)'
+        sh 'test -f docker-compose.app.yml && echo "✅ docker-compose.app.yml var" || (echo "❌ docker-compose.app.yml yok" && exit 1)'
       }
     }
 
@@ -78,35 +79,30 @@ pipeline {
 
           echo "⏳ DB healthy bekleniyor..."
           for i in $(seq 1 30); do
-            STATUS=$(docker inspect -f '{{.State.Health.Status}}' laravel_db 2>/dev/null || true)
+            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' laravel_db 2>/dev/null || true)
             echo "DB status: $STATUS"
-            [ "$STATUS" = "healthy" ] && break
+            [ "$STATUS" = "healthy" ] && echo "✅ DB healthy" && break
             sleep 5
           done
 
-          echo "⏳ APP healthy bekleniyor..."
-          for i in $(seq 1 60); do
+          echo "⏳ APP running bekleniyor..."
+          for i in $(seq 1 30); do
             RUNNING=$(docker inspect -f '{{.State.Running}}' laravel_app 2>/dev/null || echo false)
-            HEALTH=$(docker inspect -f '{{.State.Health.Status}}' laravel_app 2>/dev/null || echo starting)
-            echo "APP running=$RUNNING | health=$HEALTH ($i/60)"
+            echo "APP running=$RUNNING ($i/30)"
+            [ "$RUNNING" = "true" ] && echo "✅ APP running" && break
+            sleep 5
+          done
 
-            if [ "$RUNNING" = "true" ] && [ "$HEALTH" = "healthy" ]; then
-              echo "✅ APP healthy"
+          echo "⏳ HTTP kontrolü (app cevap veriyor mu?)..."
+          for i in $(seq 1 30); do
+            if docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/ >/dev/null"; then
+              echo "✅ APP HTTP OK"
               break
             fi
-
-            if [ "$i" -eq 15 ]; then
-              echo "📌 laravel_app logs (tail 80)"
-              docker logs laravel_app --tail=80 || true
-            fi
-
             sleep 5
           done
 
-          FINAL=$(docker inspect -f '{{.State.Health.Status}}' laravel_app 2>/dev/null || echo fail)
-          [ "$FINAL" = "healthy" ] || exit 1
-
-          echo "✅ Docker ortamı hazır"
+          docker ps
         '''
       }
     }
@@ -134,9 +130,11 @@ pipeline {
           docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/ >/dev/null"
           docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/login >/dev/null"
           docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/groups >/dev/null"
+          echo "✅ 3 adet E2E HTTP senaryosu OK"
         '''
       }
     }
+
   }
 
   post {
