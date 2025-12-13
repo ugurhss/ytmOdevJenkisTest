@@ -9,8 +9,12 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
-        checkout scm
+        // Pipeline script from SCM kullanıyorsan bu zaten checkout yapıyor.
+        // Yine de garanti olsun diye workspace içeriğini gösteriyoruz.
+        sh 'pwd'
         sh 'ls -la'
+        sh 'test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)'
+        sh 'test -d ci && echo "✅ ci klasörü var" || (echo "❌ ci klasörü yok" && exit 1)'
       }
     }
 
@@ -24,20 +28,10 @@ pipeline {
       steps {
         sh '''
           docker run --rm \
-            -v "$PWD":/app -w /app \
+            -v "$WORKSPACE":/app \
+            -w /app \
             ${CI_IMAGE} \
             composer install --no-interaction --prefer-dist
-        '''
-      }
-    }
-
-    stage('NPM Install & Build') {
-      steps {
-        sh '''
-          docker run --rm \
-            -v "$PWD":/app -w /app \
-            node:20-alpine \
-            sh -lc "npm ci && npm run build"
         '''
       }
     }
