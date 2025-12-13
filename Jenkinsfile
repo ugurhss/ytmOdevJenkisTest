@@ -3,9 +3,9 @@ pipeline {
   options { timestamps() }
 
   environment {
-    CI_IMAGE   = "laravel-ci-image:latest"
+    CI_IMAGE    = "laravel-ci-image:latest"
     JENKINS_VOL = "jenkins-laravel_jenkins_home"
-    WS         = "/var/jenkins_home/workspace/laravel-ci"
+    WS          = "/var/jenkins_home/workspace/laravel-ci"
   }
 
   stages {
@@ -14,6 +14,7 @@ pipeline {
         sh 'pwd'
         sh 'ls -la'
         sh 'test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)'
+        sh 'test -f docker-compose.app.yml && echo "✅ docker-compose.app.yml var" || (echo "❌ docker-compose.app.yml yok" && exit 1)'
       }
     }
 
@@ -34,7 +35,8 @@ pipeline {
         '''
       }
     }
-        stage('NPM Install & Build') {
+
+    stage('NPM Install & Build') {
       steps {
         sh '''
           docker run --rm \
@@ -45,6 +47,7 @@ pipeline {
         '''
       }
     }
+
     stage('Unit Tests (JUnit)') {
       steps {
         sh '''
@@ -66,19 +69,22 @@ pipeline {
         }
       }
     }
+
     stage('Docker Up (App+DB)') {
       steps {
         sh '''
-          docker compose -f docker-compose.app.yml up -d
+          docker-compose -f docker-compose.app.yml up -d
+          echo "⏳ DB ve APP ayağa kalkıyor..."
+          sleep 15
           docker ps
         '''
       }
     }
-
   }
+
   post {
     always {
-      sh 'docker compose -f docker-compose.app.yml down -v || true'
+      sh 'docker-compose -f docker-compose.app.yml down -v || true'
     }
   }
 }
