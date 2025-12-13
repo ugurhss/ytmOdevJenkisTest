@@ -1,8 +1,9 @@
 pipeline {
   agent any
+  options { timestamps() }
 
-  options {
-    timestamps()
+  environment {
+    CI_IMAGE = "laravel-ci-image:latest"
   }
 
   stages {
@@ -13,13 +14,22 @@ pipeline {
       }
     }
 
-    stage('Build (Composer)') {
+    stage('Build CI Image') {
       steps {
         sh '''
-          if [ -f composer.json ]; then
-            php -v || true
-            composer -V || true
-          fi
+          docker build -t ${CI_IMAGE} -f ci/Dockerfile.ci .
+        '''
+      }
+    }
+
+    stage('Composer Install') {
+      steps {
+        sh '''
+          docker run --rm \
+            -v "$PWD":/app \
+            -w /app \
+            ${CI_IMAGE} \
+            composer install --no-interaction --prefer-dist
         '''
       }
     }
