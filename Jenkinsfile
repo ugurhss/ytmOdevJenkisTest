@@ -34,5 +34,17 @@ pipeline {
         '''
       }
     }
+        stage('NPM Install & Build') {
+      steps {
+        sh '''
+          docker run --rm \
+            -v ${JENKINS_VOL}:/var/jenkins_home \
+            -w ${WS} \
+            node:20-alpine \
+            sh -lc "npm ci && npm run build"
+        '''
+      }
+    }
+
   }
 }
