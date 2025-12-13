@@ -45,6 +45,27 @@ pipeline {
         '''
       }
     }
+    stage('Unit Tests (JUnit)') {
+      steps {
+        sh '''
+          docker run --rm \
+            -v ${JENKINS_VOL}:/var/jenkins_home \
+            -w ${WS} \
+            ${CI_IMAGE} \
+            sh -lc "
+              cp -n .env.example .env || true
+              php artisan key:generate --force
+              mkdir -p storage/test-results
+              php artisan test --testsuite=Unit --log-junit storage/test-results/junit-unit.xml
+            "
+        '''
+      }
+      post {
+        always {
+          junit 'storage/test-results/junit-unit.xml'
+        }
+      }
+    }
 
   }
 }
