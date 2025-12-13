@@ -6,28 +6,38 @@ pipeline {
     CI_IMAGE    = "laravel-ci-image:latest"
     JENKINS_VOL = "jenkins-laravel_jenkins_home"
     WS          = "/var/jenkins_home/workspace/laravel-ci"
-    COMPOSE     = "docker compose -f docker-compose.app.yml -p laravelci"
+
+    // Her build için ayrı compose projesi -> isim çakışması biter
+    COMPOSE_PROJECT_NAME = "laravelci-${BUILD_NUMBER}"
   }
 
   stages {
     stage('Checkout') {
       steps {
-        sh 'pwd'
-        sh 'ls -la'
-        sh 'test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)'
-        sh 'test -f docker-compose.app.yml && echo "✅ docker-compose.app.yml var" || (echo "❌ docker-compose.app.yml yok" && exit 1)'
+        sh '''
+          set -e
+          pwd
+          ls -la
+          test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)
+          test -f docker-compose.app.yml && echo "✅ docker-compose.app.yml var" || (echo "❌ docker-compose.app.yml yok" && exit 1)
+          test -f ci/Dockerfile.ci && echo "✅ ci/Dockerfile.ci var" || (echo "❌ ci/Dockerfile.ci yok" && exit 1)
+        '''
       }
     }
 
     stage('Build CI Image') {
       steps {
-        sh 'docker build -t ${CI_IMAGE} -f ci/Dockerfile.ci .'
+        sh '''
+          set -e
+          docker build -t ${CI_IMAGE} -f ci/Dockerfile.ci .
+        '''
       }
     }
 
     stage('Composer Install') {
       steps {
         sh '''
+          set -e
           docker run --rm \
             -v ${JENKINS_VOL}:/var/jenkins_home \
             -w ${WS} \
@@ -40,6 +50,7 @@ pipeline {
     stage('NPM Install & Build') {
       steps {
         sh '''
+          set -e
           docker run --rm \
             -v ${JENKINS_VOL}:/var/jenkins_home \
             -w ${WS} \
@@ -52,6 +63,7 @@ pipeline {
     stage('Unit Tests (JUnit)') {
       steps {
         sh '''
+          set -e
           docker run --rm \
             -v ${JENKINS_VOL}:/var/jenkins_home \
             -w ${WS} \
@@ -66,7 +78,7 @@ pipeline {
       }
       post {
         always {
-          junit allowEmptyResults: true, testResults: '**/storage/test-results/junit-unit.xml'
+          junit allowEmptyResults: true, testResults: 'storage/test-results/junit-unit.xml'
         }
       }
     }
@@ -74,19 +86,23 @@ pipeline {
     stage('Docker Up (App+DB)') {
       steps {
         sh '''
-          ${COMPOSE} down -v || true
-          ${COMPOSE} up -d --build
-
-          echo "⏳ DB healthy bekleniyor..."
+          set -e
+          docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml up -d
+          echo "⏳ DB bekleniyor..."
           for i in $(seq 1 60); do
-            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' laravelci-db-1 2>/dev/null || true)
+            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' ${COMPOSE_PROJECT_NAME}-db-1 2>/dev/null || true)
             echo "DB health: $STATUS"
             [ "$STATUS" = "healthy" ] && break
-            sleep 2
+            sleep 5
           done
 
-          echo "⏳ APP ayağa kalkması için kısa bekleme..."
-          sleep 5
+          echo "⏳ APP bekleniyor..."
+          for i in $(seq 1 60); do
+            AHS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' ${COMPOSE_PROJECT_NAME}-app-1 2>/dev/null || true)
+            echo "APP health: $AHS"
+            [ "$AHS" = "healthy" ] && break
+            sleep 5
+          done
 
           docker ps
         '''
@@ -96,17 +112,40 @@ pipeline {
     stage('Integration Tests (Feature + JUnit)') {
       steps {
         sh '''
-          # app container adı compose project'e göre: laravelci-app-1
-          docker exec laravelci-app-1 sh -lc "
-            cd ${WS}
+          set -e
+
+          # Feature testler DB'ye root ile bağlanmasın diye .env.testing yazıyoruz:
+          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "
+            cd /app
+
+            cat > .env.testing <<'EOF'
+APP_ENV=testing
+APP_DEBUG=true
+APP_KEY=
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=laravel
+DB_PASSWORD=secret
+CACHE_DRIVER=array
+SESSION_DRIVER=array
+QUEUE_CONNECTION=sync
+MAIL_MAILER=array
+EOF
+
+            php artisan key:generate --force --env=testing
+            php artisan config:clear
+            php artisan migrate:fresh --force --env=testing
+
             mkdir -p storage/test-results
-            php artisan test --testsuite=Feature --log-junit storage/test-results/junit-feature.xml
+            php artisan test --testsuite=Feature --env=testing --log-junit storage/test-results/junit-feature.xml
           "
         '''
       }
       post {
         always {
-          junit allowEmptyResults: true, testResults: '**/storage/test-results/junit-feature.xml'
+          junit allowEmptyResults: true, testResults: 'storage/test-results/junit-feature.xml'
         }
       }
     }
@@ -114,20 +153,12 @@ pipeline {
     stage('E2E Scenarios (3 HTTP checks)') {
       steps {
         sh '''
-          echo "⏳ HTTP ready bekleniyor..."
-          for i in $(seq 1 60); do
-            curl -fsS http://localhost:8000/ >/dev/null && break
-            sleep 2
-          done
-
-          echo "✅ E2E-1: Ana sayfa 200 dönüyor"
-          curl -fsS http://localhost:8000/ >/dev/null
-
-          echo "✅ E2E-2: Login sayfası erişilebilir"
-          curl -fsS http://localhost:8000/login >/dev/null
-
-          echo "✅ E2E-3: Register sayfası erişilebilir"
-          curl -fsS http://localhost:8000/register >/dev/null
+          set -e
+          # wget yok -> php ile 3 senaryo kontrolü
+          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000\")===false);'"
+          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/login\")===false);'"
+          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/register\")===false);'"
+          echo "✅ E2E 3 HTTP senaryosu geçti"
         '''
       }
     }
@@ -135,7 +166,9 @@ pipeline {
 
   post {
     always {
-      sh '${COMPOSE} down -v || true'
+      sh '''
+        docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml down -v || true
+      '''
     }
   }
 }
