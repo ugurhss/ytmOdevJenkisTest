@@ -11,45 +11,32 @@ class StudentRepository
     protected User $user;
     protected GroupRepository $groupRepository;
 
-    /**
-     * Constructor
-     * User modelini ve GroupRepository’yi enjekte ediyoruz.
-     */
     public function __construct(User $user, GroupRepository $groupRepository)
     {
         $this->user = $user;
         $this->groupRepository = $groupRepository;
     }
 
-    /**
-     * Yeni bir öğrenci (User) oluşturur.
-     */
-  public function create(array $data)
+     public function create(array $data)
     {
         return $this->user->create([
             'name'     => $data['name'],
-            'no'       => $data['no'], // Yeni eklenen alan
+            'no'       => $data['no'],
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
     }
 
-    /**
-     * Var olan kullanıcıyı gruba bağlar.
-     */
     public function attachToGroup(int $groupId, int $studentId)
     {
         $group = $this->groupRepository->find($groupId);
 
-        // Daha önce eklenmiş mi kontrol et
         if (!$group->students()->where('user_id', $studentId)->exists()) {
             $group->students()->attach($studentId);
         }
     }
 
-    /**
-     * Hem öğrenci oluşturur hem de gruba ekler.
-     */
+
     public function createAndAttach(array $data, int $groupId)
     {
         $student = $this->create($data);

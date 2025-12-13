@@ -8,7 +8,7 @@ class StudentImporterFactory
 {
     public static function make(string $type): StudentImporterInterface
     {
-        $service = app(StudentService::class); // StudentService'i resolve et
+        $service = app(StudentService::class);
 
         return match ($type) {
             'manual' => new ManualStudentImporter($service),

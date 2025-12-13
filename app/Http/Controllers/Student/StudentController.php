@@ -64,9 +64,9 @@ class StudentController extends Controller
             }
 
 
-
-            return redirect()->route('dashboard')
-                             ->with('success', 'Öğrenci(ler) başarıyla eklendi!');
+          return redirect()
+    ->route('students.index', $groupId)
+    ->with('success', 'Öğrenci(ler) başarıyla gruba eklendi!');
 
         } catch (\Exception $e) {
 
@@ -74,7 +74,6 @@ class StudentController extends Controller
         }
     }
 
-    // Örnek CSV dosyası indir
     public function downloadSampleCsv()
     {
         $filename = 'ornek_ogrenci_listesi.csv';
@@ -84,14 +83,12 @@ class StudentController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-
         $columns = ['name', 'no'];
 
         $callback = function() use ($columns) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
             fputcsv($file, $columns);
-
 
             fputcsv($file, ['Ahmet Yılmaz', '101']);
             fputcsv($file, ['Ayşe Demir', '102']);

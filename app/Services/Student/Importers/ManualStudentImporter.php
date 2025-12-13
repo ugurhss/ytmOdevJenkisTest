@@ -15,7 +15,6 @@ class ManualStudentImporter implements StudentImporterInterface
 
     public function import(array $data, int $groupId): array
     {
-
         // Email: no@dgn.com
         // Şifre: namepassworddgn
 

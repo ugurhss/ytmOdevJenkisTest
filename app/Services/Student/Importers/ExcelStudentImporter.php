@@ -18,22 +18,18 @@ class ExcelStudentImporter implements StudentImporterInterface
     {
         $file = $data['file'];
 
-        // İlk sheet'i dizi olarak al
         $rows = Excel::toArray([], $file)[0];
 
         $students = [];
 
         foreach ($rows as $index => $row) {
-            // Başlık satırını atla (varsayım: ilk satır başlık)
             if ($index === 0) continue;
 
-            // Boş satır kontrolü
             if (empty($row[0]) || empty($row[1])) continue;
 
-            $name = trim($row[0]); // A sütunu: name
-            $no   = trim($row[1]); // B sütunu: no
+            $name = trim($row[0]);
+            $no   = trim($row[1]);
 
-            // Otomatik üretim
             $email = $no . '@dgn.com';
             $password = $name.'passworddgn';
 

@@ -5,7 +5,6 @@ use Illuminate\Database\Eloquent\Model;
 
 abstract class BaseRepository
 {
-///Template Method Pattern (abstract + inheritance) Repository Pattern
     protected Model $model;
 
     public function __construct(Model $model)
