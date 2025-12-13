@@ -6,13 +6,12 @@ pipeline {
     CI_IMAGE    = "laravel-ci-image:latest"
     JENKINS_VOL = "jenkins-laravel_jenkins_home"
     WS          = "/var/jenkins_home/workspace/laravel-ci"
+    COMPOSE     = "docker compose -f docker-compose.app.yml -p laravelci"
   }
 
   stages {
-
     stage('Checkout') {
       steps {
-        checkout scm
         sh 'pwd'
         sh 'ls -la'
         sh 'test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)'
@@ -67,7 +66,7 @@ pipeline {
       }
       post {
         always {
-          junit allowEmptyResults: true, testResults: 'storage/test-results/junit-unit.xml'
+          junit allowEmptyResults: true, testResults: '**/storage/test-results/junit-unit.xml'
         }
       }
     }
@@ -75,32 +74,19 @@ pipeline {
     stage('Docker Up (App+DB)') {
       steps {
         sh '''
-          docker-compose -f docker-compose.app.yml up -d
+          ${COMPOSE} down -v || true
+          ${COMPOSE} up -d --build
 
           echo "⏳ DB healthy bekleniyor..."
-          for i in $(seq 1 30); do
-            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' laravel_db 2>/dev/null || true)
-            echo "DB status: $STATUS"
-            [ "$STATUS" = "healthy" ] && echo "✅ DB healthy" && break
-            sleep 5
+          for i in $(seq 1 60); do
+            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' laravelci-db-1 2>/dev/null || true)
+            echo "DB health: $STATUS"
+            [ "$STATUS" = "healthy" ] && break
+            sleep 2
           done
 
-          echo "⏳ APP running bekleniyor..."
-          for i in $(seq 1 30); do
-            RUNNING=$(docker inspect -f '{{.State.Running}}' laravel_app 2>/dev/null || echo false)
-            echo "APP running=$RUNNING ($i/30)"
-            [ "$RUNNING" = "true" ] && echo "✅ APP running" && break
-            sleep 5
-          done
-
-          echo "⏳ HTTP kontrolü (app cevap veriyor mu?)..."
-          for i in $(seq 1 30); do
-            if docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/ >/dev/null"; then
-              echo "✅ APP HTTP OK"
-              break
-            fi
-            sleep 5
-          done
+          echo "⏳ APP ayağa kalkması için kısa bekleme..."
+          sleep 5
 
           docker ps
         '''
@@ -110,8 +96,9 @@ pipeline {
     stage('Integration Tests (Feature + JUnit)') {
       steps {
         sh '''
-          docker exec laravel_app sh -lc "
-            cd /var/jenkins_home/workspace/laravel-ci
+          # app container adı compose project'e göre: laravelci-app-1
+          docker exec laravelci-app-1 sh -lc "
+            cd ${WS}
             mkdir -p storage/test-results
             php artisan test --testsuite=Feature --log-junit storage/test-results/junit-feature.xml
           "
@@ -119,7 +106,7 @@ pipeline {
       }
       post {
         always {
-          junit allowEmptyResults: true, testResults: 'storage/test-results/junit-feature.xml'
+          junit allowEmptyResults: true, testResults: '**/storage/test-results/junit-feature.xml'
         }
       }
     }
@@ -127,19 +114,28 @@ pipeline {
     stage('E2E Scenarios (3 HTTP checks)') {
       steps {
         sh '''
-          docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/ >/dev/null"
-          docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/login >/dev/null"
-          docker exec laravel_app sh -lc "wget -qO- http://127.0.0.1:8000/groups >/dev/null"
-          echo "✅ 3 adet E2E HTTP senaryosu OK"
+          echo "⏳ HTTP ready bekleniyor..."
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8000/ >/dev/null && break
+            sleep 2
+          done
+
+          echo "✅ E2E-1: Ana sayfa 200 dönüyor"
+          curl -fsS http://localhost:8000/ >/dev/null
+
+          echo "✅ E2E-2: Login sayfası erişilebilir"
+          curl -fsS http://localhost:8000/login >/dev/null
+
+          echo "✅ E2E-3: Register sayfası erişilebilir"
+          curl -fsS http://localhost:8000/register >/dev/null
         '''
       }
     }
-
   }
 
   post {
     always {
-      sh 'docker-compose -f docker-compose.app.yml down -v || true'
+      sh '${COMPOSE} down -v || true'
     }
   }
 }
