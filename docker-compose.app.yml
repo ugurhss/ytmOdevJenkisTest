@@ -3,7 +3,7 @@ services:
     image: laravel-ci-image:latest
     working_dir: /app
     volumes:
-      - ./:/app
+      - ${APP_SOURCE:-.}:/app
     ports:
       - "8000:8000"
     depends_on:

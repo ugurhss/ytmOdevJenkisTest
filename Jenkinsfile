@@ -109,6 +109,10 @@ pipeline {
           cd ${WS}
           echo "PWD=$(pwd)"
           ls -la docker-compose.app.yml
+          HOST_WS=$(docker volume inspect ${JENKINS_VOL} -f '{{.Mountpoint}}')
+          APP_SOURCE="$HOST_WS/workspace/laravel-ci"
+          export APP_SOURCE
+          echo "APP_SOURCE=$APP_SOURCE"
 
           echo "-> compose up"
           docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml up -d
@@ -174,6 +178,10 @@ pipeline {
           echo "== DB Migrate (Controlled) =="
 
           cd ${WS}
+          HOST_WS=$(docker volume inspect ${JENKINS_VOL} -f '{{.Mountpoint}}')
+          APP_SOURCE="$HOST_WS/workspace/laravel-ci"
+          export APP_SOURCE
+          echo "APP_SOURCE=$APP_SOURCE"
           APP_CID=$(docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q app || true)
 
           if [ -z "$APP_CID" ]; then
@@ -199,6 +207,10 @@ pipeline {
           echo "== Integration Tests (Feature) =="
 
           cd ${WS}
+          HOST_WS=$(docker volume inspect ${JENKINS_VOL} -f '{{.Mountpoint}}')
+          APP_SOURCE="$HOST_WS/workspace/laravel-ci"
+          export APP_SOURCE
+          echo "APP_SOURCE=$APP_SOURCE"
           APP_CID=$(docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q app || true)
 
           if [ -z "$APP_CID" ]; then
@@ -250,6 +262,10 @@ EOF
           echo "== E2E Scenarios (3 HTTP checks) =="
 
           cd ${WS}
+          HOST_WS=$(docker volume inspect ${JENKINS_VOL} -f '{{.Mountpoint}}')
+          APP_SOURCE="$HOST_WS/workspace/laravel-ci"
+          export APP_SOURCE
+          echo "APP_SOURCE=$APP_SOURCE"
           APP_CID=$(docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q app || true)
 
           if [ -z "$APP_CID" ]; then
@@ -275,6 +291,14 @@ EOF
       sh '''
         echo "== Post: Cleanup =="
         cd ${WS} || true
+        if docker volume inspect ${JENKINS_VOL} >/dev/null 2>&1; then
+          HOST_WS=$(docker volume inspect ${JENKINS_VOL} -f '{{.Mountpoint}}')
+          APP_SOURCE="$HOST_WS/workspace/laravel-ci"
+          export APP_SOURCE
+          echo "APP_SOURCE=$APP_SOURCE"
+        else
+          echo "⚠️ Jenkins volume ${JENKINS_VOL} inspect failed; using default APP_SOURCE"
+        fi
         docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps || true
         docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml logs app --tail=120 || true
         docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml logs db --tail=120 || true
