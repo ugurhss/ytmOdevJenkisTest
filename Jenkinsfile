@@ -3,24 +3,32 @@ pipeline {
   options { timestamps() }
 
   environment {
-    CI_IMAGE    = "laravel-ci-image:latest"
-    JENKINS_VOL = "jenkins-laravel_jenkins_home"
-    WS          = "/var/jenkins_home/workspace/laravel-ci"
+    CI_IMAGE = "laravel-ci-image:latest"
 
-    // Her build için ayrı compose projesi -> isim çakışması biter
+    // Her build için ayrı compose projesi -> çakışma bitiyor
     COMPOSE_PROJECT_NAME = "laravelci-${BUILD_NUMBER}"
+
+    // Jenkins workspace yolu (jenkins container içinde genelde budur)
+    WS = "${WORKSPACE}"
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         sh '''
           set -e
           pwd
           ls -la
+
           test -f composer.json && echo "✅ composer.json var" || (echo "❌ composer.json yok" && exit 1)
           test -f docker-compose.app.yml && echo "✅ docker-compose.app.yml var" || (echo "❌ docker-compose.app.yml yok" && exit 1)
           test -f ci/Dockerfile.ci && echo "✅ ci/Dockerfile.ci var" || (echo "❌ ci/Dockerfile.ci yok" && exit 1)
+
+          echo "Docker kontrol:"
+          docker version
+          echo "Compose kontrol:"
+          docker-compose version
         '''
       }
     }
@@ -39,8 +47,8 @@ pipeline {
         sh '''
           set -e
           docker run --rm \
-            -v ${JENKINS_VOL}:/var/jenkins_home \
-            -w ${WS} \
+            -v "${WS}:/app" \
+            -w /app \
             ${CI_IMAGE} \
             composer install --no-interaction --prefer-dist
         '''
@@ -52,8 +60,8 @@ pipeline {
         sh '''
           set -e
           docker run --rm \
-            -v ${JENKINS_VOL}:/var/jenkins_home \
-            -w ${WS} \
+            -v "${WS}:/app" \
+            -w /app \
             node:20-alpine \
             sh -lc "npm ci && npm run build"
         '''
@@ -65,8 +73,8 @@ pipeline {
         sh '''
           set -e
           docker run --rm \
-            -v ${JENKINS_VOL}:/var/jenkins_home \
-            -w ${WS} \
+            -v "${WS}:/app" \
+            -w /app \
             ${CI_IMAGE} \
             sh -lc "
               cp -n .env.example .env || true
@@ -87,18 +95,31 @@ pipeline {
       steps {
         sh '''
           set -e
-          docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml up -d
-          echo "⏳ DB bekleniyor..."
+
+          # Up
+          docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml up -d
+
+          echo "Servisler:"
+          docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps
+
+          # Container ID’lerini sağlam şekilde al
+          DB_CID=$(docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q db)
+          APP_CID=$(docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q app)
+
+          echo "DB_CID=$DB_CID"
+          echo "APP_CID=$APP_CID"
+
+          echo "⏳ DB health bekleniyor..."
           for i in $(seq 1 60); do
-            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' ${COMPOSE_PROJECT_NAME}-db-1 2>/dev/null || true)
+            STATUS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$DB_CID" 2>/dev/null || true)
             echo "DB health: $STATUS"
             [ "$STATUS" = "healthy" ] && break
             sleep 5
           done
 
-          echo "⏳ APP bekleniyor..."
+          echo "⏳ APP health bekleniyor..."
           for i in $(seq 1 60); do
-            AHS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' ${COMPOSE_PROJECT_NAME}-app-1 2>/dev/null || true)
+            AHS=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$APP_CID" 2>/dev/null || true)
             echo "APP health: $AHS"
             [ "$AHS" = "healthy" ] && break
             sleep 5
@@ -114,8 +135,9 @@ pipeline {
         sh '''
           set -e
 
-          # Feature testler DB'ye root ile bağlanmasın diye .env.testing yazıyoruz:
-          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "
+          APP_CID=$(docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q app)
+
+          docker exec "$APP_CID" sh -lc "
             cd /app
 
             cat > .env.testing <<'EOF'
@@ -154,10 +176,13 @@ EOF
       steps {
         sh '''
           set -e
-          # wget yok -> php ile 3 senaryo kontrolü
-          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000\")===false);'"
-          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/login\")===false);'"
-          docker exec ${COMPOSE_PROJECT_NAME}-app-1 sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/register\")===false);'"
+          APP_CID=$(docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml ps -q app)
+
+          # container içinden localhost’a istek atıyoruz
+          docker exec "$APP_CID" sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000\")===false);'"
+          docker exec "$APP_CID" sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/login\")===false);'"
+          docker exec "$APP_CID" sh -lc "php -r 'exit(@file_get_contents(\"http://127.0.0.1:8000/register\")===false);'"
+
           echo "✅ E2E 3 HTTP senaryosu geçti"
         '''
       }
@@ -167,7 +192,7 @@ EOF
   post {
     always {
       sh '''
-        docker compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml down -v || true
+        docker-compose -p ${COMPOSE_PROJECT_NAME} -f docker-compose.app.yml down -v || true
       '''
     }
   }

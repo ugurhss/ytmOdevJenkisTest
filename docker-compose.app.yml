@@ -27,7 +27,6 @@ services:
         php artisan serve --host=0.0.0.0 --port=8000
       "
     healthcheck:
-      # wget/curl yok -> php ile localhost HTTP kontrolü
       test: [ "CMD-SHELL", "php -r \"exit(@file_get_contents('http://127.0.0.1:8000')===false ? 1 : 0);\"" ]
       interval: 5s
       timeout: 3s
