@@ -18,10 +18,17 @@ class StudentService
      */
     public function createAndAttachToGroup(array $studentData, int $groupId)
     {
-        $student = $this->repository->createAndAttach($studentData, $groupId);
+        $student = $this->repository->findByNo($studentData['no']);
 
+        if (! $student) {
+            $student = $this->repository->create($studentData);
+        }
 
-        $student->assignRole('Student');
+        if (! $student->hasRole('student')) {
+            $student->assignRole('student');
+        }
+
+        $this->repository->attachToGroup($groupId, $student->id);
 
         return $student;
     }

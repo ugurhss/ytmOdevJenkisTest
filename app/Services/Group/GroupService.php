@@ -3,6 +3,7 @@
 namespace App\Services\Group;
 
 use App\Models\Group;
+use App\Models\User;
 use App\Repositories\Group\GroupRepository;
 use App\Services\Activity\ActivityLogService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -75,5 +76,17 @@ class GroupService
 {
     return $this->repository->getGroupsByStudentId($studentId);
 }
+
+    public function removeStudent(int $groupId, int $studentId): void
+    {
+        $group = $this->repository->find($groupId);
+        $student = User::find($studentId);
+
+        $this->repository->detachStudent($groupId, $studentId);
+
+        if ($student) {
+            $this->activityLogService->logStudentRemovedFromGroup($group, $student, Auth::user());
+        }
+    }
 
 }

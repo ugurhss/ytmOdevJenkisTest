@@ -65,6 +65,35 @@ class ActivityLogService
         ]);
     }
 
+    public function logStudentRemovedFromGroup(Group $group, User $student, ?User $actor = null): void
+    {
+        $actorName = $actor?->name ?? 'Sistem';
+
+        $description = sprintf(
+            '"%s" numaralı öğrenci (%s) ID\'si %d olan gruptan çıkarıldı. İşlemi yapan: %s.',
+            $student->no ?? '-',
+            $student->name ?? 'İsimsiz',
+            $group->id,
+            $actorName
+        );
+
+        ActivityLog::create([
+            'event'        => 'student_removed_from_group',
+            'description'  => $description,
+            'actor_id'     => $actor?->id,
+            'actor_name'   => $actorName,
+            'subject_type' => Group::class,
+            'subject_id'   => $group->id,
+            'meta'         => [
+                'group_id'     => $group->id,
+                'group_name'   => $group->groups_name,
+                'student_id'   => $student->id,
+                'student_no'   => $student->no,
+                'student_name' => $student->name,
+            ],
+        ]);
+    }
+
 
     public function logAnnouncementCreated(GroupAnnouncement $announcement, ?User $actor = null): void
     {

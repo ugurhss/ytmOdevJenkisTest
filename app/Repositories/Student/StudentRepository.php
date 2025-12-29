@@ -44,4 +44,9 @@ class StudentRepository
 
         return $student;
     }
+
+    public function findByNo(string $no): ?User
+    {
+        return $this->user->newQuery()->where('no', $no)->first();
+    }
 }

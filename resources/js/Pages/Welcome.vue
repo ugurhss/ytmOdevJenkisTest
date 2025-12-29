@@ -323,6 +323,7 @@ const toggleMenu = () => (isMenuOpen.value = !isMenuOpen.value);
                     </div>
                     <p class="sponsors-note">
                         Klasik WhatsApp gruplarını bırakıp sadece duyuru kullanan yüzlerce topluluk.
+                        Bu site tanıtım amaclıdır ve aşagıda bulunan kurumlarla ve topluluklarla bir alakası yoktur
                     </p>
                 </div>
 
@@ -341,6 +342,12 @@ const toggleMenu = () => (isMenuOpen.value = !isMenuOpen.value);
                                 <img src="https://yt3.googleusercontent.com/ytc/AIdro_nnpxTpH03bCbzY669bkxx1TZwASriiRHijPaL9NaM3kSI=s900-c-k-c0x00ffffff-no-rj" alt="Antalya Bilim Üniversitesi" />
                             </div>
                             <div class="sponsor-label">Antalya Bilim Üniversitesi</div>
+                        </div>
+  <div class="sponsor-item">
+                            <div class="sponsor-logo">
+                                <img src="https://yt3.googleusercontent.com/ytc/AIdro_nnpxTpH03bCbzY669bkxx1TZwASriiRHijPaL9NaM3kSI=s900-c-k-c0x00ffffff-no-rj" alt="Antalya Bilim Üniversitesi" />
+                            </div>
+                            <div class="sponsor-label">Antalya Belek Üniversitesi</div>
                         </div>
 
                         <div class="sponsor-item">
@@ -1347,7 +1354,8 @@ body.cursor-hover .cursor-outline {
     align-items: center;
     gap: 18px;
     white-space: nowrap;
-    animation: sponsors-scroll 30s linear infinite;
+    animation: sponsors-scroll 18s linear infinite;
+    will-change: transform;
 }
 .sponsor-item {
     display: inline-flex;
@@ -1640,7 +1648,8 @@ body.cursor-hover .cursor-outline {
     align-items: stretch;
     gap: 14px;
     white-space: nowrap;
-    animation: testimonials-scroll 32s linear infinite;
+    animation: testimonials-scroll 22s linear infinite;
+    will-change: transform;
 }
 .testimonial-chip {
     display: inline-flex;

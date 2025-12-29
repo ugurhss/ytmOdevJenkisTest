@@ -66,5 +66,10 @@ public function getGroupsByStudentId(int $studentId)
     })->with(['announcements.user'])->get(); // duyuruları ve yazarları eager load ediyoruz
 }
 
+    public function detachStudent(int $groupId, int $studentId): void
+    {
+        $group = $this->find($groupId);
+        $group->students()->detach($studentId);
+    }
 
 }

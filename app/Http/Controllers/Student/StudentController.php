@@ -120,8 +120,9 @@ class StudentController extends Controller
     public function studentDestroy(int $groupId, int $studentId)
     {
         $group = $this->groupService->getById($groupId);
-        $this->authorize('delete', $group);
-        $group->students()->detach($studentId);
+        $this->authorize('update', $group);
+        $this->groupService->removeStudent($groupId, $studentId);
+
         return back()->with('success', 'Öğrenci gruptan çıkarıldı.');
     }
 }
